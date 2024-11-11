@@ -74,23 +74,23 @@ const Layout = () => {
   //   return <Loading />
 
   return (
-    <div>Home page</div>
-    // <div className="flex flex-row w-screen h-screen bg-[var(--navbar-bg)]">
-    //   <NavBar />
-    //   {/* content */}
-    //   <div className="w-full bg-[var(--conversation-bg)]">
-    //     <div className="flex min-h-screen w-full border border-[var(--navbar-bg)] border-lg">
-    //       <Chat client={client}>
-    //         <div className={`${path !== '/' ? 'hidden' : ''} w-[350px] bg-[var(--page-bg)]`}>
-    //           <ChatPanel />
-    //         </div>
-    //         <Outlet />
-    //         <MessageContainer />
-    //       </Chat>
-    //     </div>
-    //   </div>
-    //   {inComingCall && <RingingCall inComingCall={inComingCall} />}
-    // </div>
+    // <div>Home page</div>
+    <div className="flex flex-row w-screen h-screen bg-[var(--navbar-bg)]">
+      <NavBar />
+      {/* content
+      <div className="w-full bg-[var(--conversation-bg)]">
+        <div className="flex min-h-screen w-full border border-[var(--navbar-bg)] border-lg">
+          <Chat client={client}>
+            <div className={`${path !== '/' ? 'hidden' : ''} w-[350px] bg-[var(--page-bg)]`}>
+              <ChatPanel />
+            </div>
+            <Outlet />
+            <MessageContainer />
+          </Chat>
+        </div>
+      </div>
+      {inComingCall && <RingingCall inComingCall={inComingCall} />} */}
+    </div>
   );
 };
 
