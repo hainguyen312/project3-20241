@@ -50,7 +50,7 @@ function Login() {
         /* global google */
         google.accounts.id.initialize({
             client_id:
-                "118692739109-em2kp06md5s62ee8533ugpq3usq5e684.apps.googleusercontent.com",
+                "446322316613-mnlfcnipgicbbp95umps63t3l9t1c9ou.apps.googleusercontent.com",
             callback: handleCallbackResponse,
         });
         google.accounts.id.renderButton(
