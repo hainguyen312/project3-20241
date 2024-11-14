@@ -46,7 +46,7 @@ const NavBar = () => {
   return (
     <div className="border flex flex-col gap-1 items-center bg-[var(--navbar-bg)] border-none">
       <h1 className="text-2xl text-black font-medium p-3">
-        <img src={`${process.env.PUBLIC_URL}/appicon.png`} className="w-20 h-20" alt="app icon"></img>
+        <img src={`${process.env.PUBLIC_URL}/icon.png`} className="w-20 h-20" alt="app icon"></img>
       </h1>
       <div className="divider my-0"></div>
       <div className="flex flex-col gap-1 justify-between items-center w-full mt-9">
