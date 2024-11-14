@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import axios from "axios";
 import Tippy from "@tippyjs/react";
 import useAuth from "../../hooks/useAuth";
+import "./Auth.css"
 
 const USERNAME_REGEX = /^[A-z][A-z0-9-_]{3,23}$/;
 const PWD_REGEX = /^(?=.*[a-z])(?=.*[A-Z])(?=.*[0-9])(?=.*[!@#$%_?]).{6,24}$/;
@@ -122,11 +123,7 @@ function Register() {
     return (
         <div className="h-screen w-screen flex bg-[var(--login-right-bg)]">
             {/* left theme */}
-            <div className="h-full w-1/2 bg-gradient-to-r from-[--login-start-gradient] to-[--login-end-gradient] flex-auto">
-
-            </div>
-            {/* right theme */}
-            <div className="h-full w-1/2 flex items-center justify-center">
+            <div className="animate-slide-right h-full w-1/2 flex items-center justify-center">
                 {/* Box */}
                 {
                     !success ?
@@ -300,7 +297,9 @@ function Register() {
                 }
 
             </div>
-
+            {/* right theme */}
+            <div className="animate-slide-left h-full w-1/2 bg-gradient-to-r from-[--login-end-gradient] to-[--login-start-gradient] flex-auto">
+            </div>
         </div>
 
     )
