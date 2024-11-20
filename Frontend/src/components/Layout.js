@@ -70,14 +70,14 @@ const Layout = () => {
 
   const path = useLocation().pathname;
 
-  // if (!client)
-  //   return <Loading />
+  if (!client)
+    return <Loading />
 
   return (
     // <div>Home page</div>
     <div className="flex flex-row w-screen h-screen bg-[var(--navbar-bg)]">
       <NavBar />
-      {/* content
+      {/* content */}
       <div className="w-full bg-[var(--conversation-bg)]">
         <div className="flex min-h-screen w-full border border-[var(--navbar-bg)] border-lg">
           <Chat client={client}>
@@ -89,7 +89,7 @@ const Layout = () => {
           </Chat>
         </div>
       </div>
-      {inComingCall && <RingingCall inComingCall={inComingCall} />} */}
+      {inComingCall && <RingingCall inComingCall={inComingCall} />}
     </div>
   );
 };
