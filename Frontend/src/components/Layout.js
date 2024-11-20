@@ -57,7 +57,7 @@ const Layout = () => {
   const { auth } = useAuth();
   const { username, streamToken, image } = auth;
 
-  const apiKey = '3w47ynjjggn4';
+  const apiKey = '472pnwyznejm';
   const client = useCreateChatClient({
     apiKey,
     tokenOrProvider: streamToken,
