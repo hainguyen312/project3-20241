@@ -17,7 +17,7 @@ export const SocketProvider = ({ children }) => {
                     username: auth.username,
                 },
             });
-            // console.log(newSocket);
+            console.log(newSocket);
             setSocket(newSocket);
         } else {
             console.error(`Not authenticated`);
