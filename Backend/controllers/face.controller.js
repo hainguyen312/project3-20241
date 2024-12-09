@@ -1,11 +1,17 @@
 const { spawn } = require('child_process');
 const path = require('path');
-const fs = require('fs'); // Đảm bảo rằng bạn đã require fs
+const fs = require('fs');
 
-// Đảm bảo rằng thư mục uploads tồn tại
+// Đảm bảo rằng thư mục uploads và thư mục chứa embeddings mẫu tồn tại
 const uploadsDir = path.join(__dirname, 'uploads');
+const embeddingsDir = path.join(__dirname, 'embeddings');  // Đảm bảo có thư mục này để lưu embeddings mẫu
+
 if (!fs.existsSync(uploadsDir)) {
     fs.mkdirSync(uploadsDir);
+}
+
+if (!fs.existsSync(embeddingsDir)) {
+    fs.mkdirSync(embeddingsDir);
 }
 
 exports.analyzeFace = (req, res) => {
@@ -22,7 +28,8 @@ exports.analyzeFace = (req, res) => {
 
     const scriptPath = path.join(__dirname, 'deepface_analyze.py');
 
-    const pythonProcess = spawn('python3', [scriptPath, imagePath]);
+    // Chạy Python script và truyền đường dẫn đến ảnh và thư mục embeddings
+    const pythonProcess = spawn('python3', [scriptPath, imagePath, embeddingsDir]);
 
     let output = "";
     pythonProcess.stdout.on('data', (data) => {
@@ -37,7 +44,7 @@ exports.analyzeFace = (req, res) => {
         if (code === 0) {
             try {
                 const result = JSON.parse(output);
-                res.json(result); // Trả về dữ liệu khuôn mặt đã nhận diện
+                res.json(result); // Trả về kết quả nhận diện khuôn mặt
             } catch (err) {
                 res.status(500).json({ error: "Failed to parse Python output" });
             }

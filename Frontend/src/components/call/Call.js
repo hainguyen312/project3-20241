@@ -68,7 +68,12 @@ export default function Call() {
                 // Nếu quyền truy cập đã được cấp
                 navigator.mediaDevices.getUserMedia({ video: true })
                     .then((stream) => {
-                        videoRef.current.srcObject = stream;
+                        // Kiểm tra videoRef.current có tồn tại trước khi truy cập
+                        if (videoRef.current) {
+                            videoRef.current.srcObject = stream;
+                        } else {
+                            console.error("Video element is not available.");
+                        }
                     })
                     .catch((err) => {
                         console.error("Error accessing camera: ", err);
@@ -78,7 +83,12 @@ export default function Call() {
                 // Nếu quyền truy cập chưa được cấp, yêu cầu quyền
                 navigator.mediaDevices.getUserMedia({ video: true })
                     .then((stream) => {
-                        videoRef.current.srcObject = stream;
+                        // Kiểm tra videoRef.current có tồn tại trước khi truy cập
+                        if (videoRef.current) {
+                            videoRef.current.srcObject = stream;
+                        } else {
+                            console.error("Video element is not available.");
+                        }
                     })
                     .catch((err) => {
                         console.error("Error accessing camera: ", err);
@@ -93,6 +103,7 @@ export default function Call() {
             setMessage("Error checking camera permissions.");
         });
     }, []);
+    
 
     // Capture frame for face recognition
     const captureFrame = async () => {
@@ -124,7 +135,7 @@ export default function Call() {
         // Convert canvas to Blob and send to backend
         canvasElement.toBlob(async (blob) => {
             if (blob) {
-                console.log("Image captured successfully"); // Log when image is captured
+                console.log("Image captured successfully");
                 const formData = new FormData();
                 formData.append('image', blob);
 
@@ -135,14 +146,14 @@ export default function Call() {
                         }
                     });
 
-                    if (response.data.faces && response.data.faces.length > 0) {
-                        setMessage("Face detected!");
-                        setFaceData(response.data.faces);
+                    if (response.data.recognized) {
+                        setMessage("Person A detected!");
+                        setFaceData(response.data);
                     } else {
-                        setMessage("No faces detected.");
+                        setMessage("No match detected.");
                         setFaceData([]);
                     }
-                    console.log("Face recognition response:", response.data); // Log response
+                    console.log("Face recognition response:", response.data);
                 } catch (err) {
                     console.error('Error in face recognition:', err);
                     setMessage("Error occurred during face recognition.");
@@ -183,9 +194,9 @@ export default function Call() {
                 </StreamCall>
             </StreamVideo>
             {/* Hidden canvas for frame capture */}
-            <canvas ref={canvasRef} style={{ display: 'none' }} />
+            <canvas ref={canvasRef} style={{ display: 'block' }} />
             {/* Video element for capturing */}
-            <video ref={videoRef} autoPlay style={{ display: 'none' }} />
+            <video ref={videoRef} autoPlay style={{ display: 'block' }} />
             {/* Button for manual face recognition */}
             <button onClick={handleFaceRecognition}>Recognize Face</button>
             {/* Display messages */}
@@ -224,7 +235,7 @@ export const MyUILayout = ({ callType, faceData }) => {
 
 const FaceOverlay = ({ faceData }) => {
     if (!faceData || faceData.length === 0) {
-        console.log("No faces detected"); // Log if no faces are detected
+        console.log("No faces detected");
         return null;
     }
 
