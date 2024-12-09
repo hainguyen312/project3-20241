@@ -35,6 +35,7 @@ const userRouter = require('./routes/user.router');
 const groupRouter = require('./routes/group.router');
 const callRouter = require('./routes/call.router');
 const chatRouter = require('./routes/chat.router');
+const faceRouter = require('./routes/face.router');
 
 const verifyJWT = require('./middlewares/verifyJWT');
 
@@ -46,6 +47,7 @@ app.use('/api/user', verifyJWT, userRouter);
 app.use('/api/group', verifyJWT, groupRouter);
 app.use('/api/call', verifyJWT, callRouter);
 app.use('/api/chat', verifyJWT, chatRouter);
+app.use('/api/face', faceRouter);
 
 const _dirname = path.dirname("")
 const buildPath = path.join(_dirname, "./client/build");
