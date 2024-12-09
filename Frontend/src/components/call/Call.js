@@ -19,6 +19,7 @@ export default function Call() {
     const [call, setCall] = useState(null);
     const [error, setError] = useState(null);
     const [faceData, setFaceData] = useState([]);
+    const [message, setMessage] = useState("");
     const { auth } = useAuth();
     const { username, streamToken } = auth;
     const { callType, callId } = useParams();
@@ -60,13 +61,58 @@ export default function Call() {
         };
     }, [streamToken, username, callId, auth.image]);
 
+    useEffect(() => {
+        // Kiểm tra quyền truy cập camera và microphone
+        navigator.permissions.query({ name: 'camera' }).then((result) => {
+            if (result.state === 'granted') {
+                // Nếu quyền truy cập đã được cấp
+                navigator.mediaDevices.getUserMedia({ video: true })
+                    .then((stream) => {
+                        videoRef.current.srcObject = stream;
+                    })
+                    .catch((err) => {
+                        console.error("Error accessing camera: ", err);
+                        setMessage("Error accessing camera.");
+                    });
+            } else if (result.state === 'prompt') {
+                // Nếu quyền truy cập chưa được cấp, yêu cầu quyền
+                navigator.mediaDevices.getUserMedia({ video: true })
+                    .then((stream) => {
+                        videoRef.current.srcObject = stream;
+                    })
+                    .catch((err) => {
+                        console.error("Error accessing camera: ", err);
+                        setMessage("Camera access is denied.");
+                    });
+            } else {
+                // Nếu quyền truy cập bị từ chối
+                setMessage("Camera access is denied.");
+            }
+        }).catch((err) => {
+            console.error("Permission error: ", err);
+            setMessage("Error checking camera permissions.");
+        });
+    }, []);
+
     // Capture frame for face recognition
     const captureFrame = async () => {
-        if (!videoRef.current || !canvasRef.current) return;
+        if (!videoRef.current || !canvasRef.current) {
+            console.error("Video or canvas element is not available.");
+            return;
+        }
 
         const videoElement = videoRef.current;
         const canvasElement = canvasRef.current;
         const ctx = canvasElement.getContext('2d');
+
+        // Kiểm tra videoElement và canvasElement
+        console.log('Video Element:', videoElement);
+        console.log('Canvas Element:', canvasElement);
+
+        if (videoElement.videoWidth === 0 || videoElement.videoHeight === 0) {
+            console.error("Video has no content.");
+            return;
+        }
 
         // Set canvas size to video size
         canvasElement.width = videoElement.videoWidth;
@@ -78,6 +124,7 @@ export default function Call() {
         // Convert canvas to Blob and send to backend
         canvasElement.toBlob(async (blob) => {
             if (blob) {
+                console.log("Image captured successfully"); // Log when image is captured
                 const formData = new FormData();
                 formData.append('image', blob);
 
@@ -87,13 +134,28 @@ export default function Call() {
                             'Content-Type': 'multipart/form-data'
                         }
                     });
-                
-                    setFaceData(response.data.faces); 
+
+                    if (response.data.faces && response.data.faces.length > 0) {
+                        setMessage("Face detected!");
+                        setFaceData(response.data.faces);
+                    } else {
+                        setMessage("No faces detected.");
+                        setFaceData([]);
+                    }
+                    console.log("Face recognition response:", response.data); // Log response
                 } catch (err) {
                     console.error('Error in face recognition:', err);
-                }                
+                    setMessage("Error occurred during face recognition.");
+                }
+            } else {
+                console.error("Failed to capture image, canvas blob is empty.");
             }
         }, 'image/jpeg');
+    };
+
+    const handleFaceRecognition = () => {
+        setMessage(""); // Reset message before new recognition
+        captureFrame();
     };
 
     useEffect(() => {
@@ -124,6 +186,10 @@ export default function Call() {
             <canvas ref={canvasRef} style={{ display: 'none' }} />
             {/* Video element for capturing */}
             <video ref={videoRef} autoPlay style={{ display: 'none' }} />
+            {/* Button for manual face recognition */}
+            <button onClick={handleFaceRecognition}>Recognize Face</button>
+            {/* Display messages */}
+            {message && <div>{message}</div>}
         </>
     );
 }
@@ -157,7 +223,10 @@ export const MyUILayout = ({ callType, faceData }) => {
 };
 
 const FaceOverlay = ({ faceData }) => {
-    if (!faceData || faceData.length === 0) return null;
+    if (!faceData || faceData.length === 0) {
+        console.log("No faces detected"); // Log if no faces are detected
+        return null;
+    }
 
     return (
         <div className="face-overlay">

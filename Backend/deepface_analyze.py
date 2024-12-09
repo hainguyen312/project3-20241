@@ -1,16 +1,13 @@
+# deepface_analyze.py
 import sys
-import json
 from deepface import DeepFace
+import json
 
-def analyze_image(image_path):
-    try:
-        # Phân tích ảnh với các hành động: tuổi, giới tính, cảm xúc, chủng tộc
-        result = DeepFace.analyze(img_path=image_path, actions=['age', 'gender', 'emotion', 'race'])
-        return json.dumps(result)
-    except Exception as e:
-        return json.dumps({"error": str(e)})
+image_path = sys.argv[1]
 
-if __name__ == "__main__":
-    # Nhận đường dẫn file từ tham số dòng lệnh
-    image_path = sys.argv[1]
-    print(analyze_image(image_path))
+# Analyze the image
+try:
+    analysis = DeepFace.analyze(image_path, actions=['emotion', 'age', 'gender', 'race'])
+    print(json.dumps(analysis))  # Return the analysis as JSON
+except Exception as e:
+    print(json.dumps({"error": str(e)}))  # In case of error, return the error
