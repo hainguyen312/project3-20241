@@ -17,166 +17,86 @@ import axios from 'axios';
 export default function Call() {
     const [client, setClient] = useState(null);
     const [call, setCall] = useState(null);
-    const [error, setError] = useState(null);
-    const [faceData, setFaceData] = useState([]);
     const [message, setMessage] = useState("");
     const { auth } = useAuth();
     const { username, streamToken } = auth;
     const { callType, callId } = useParams();
-    const videoRef = useRef(null);
-    const canvasRef = useRef(null);
+    const streamRef = useRef(null); // Sử dụng useRef để lưu trữ stream
 
     useEffect(() => {
-        const apiKey = '3w47ynjjggn4';
-        const token = streamToken;
-        const userId = username;
+        const startLocalVideo = async () => {
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+                streamRef.current = stream; // Lưu stream vào useRef
 
-        const user = {
-            id: userId,
-            name: username,
-            image: `https://getstream.io/random_svg/?id=oliver&name=${auth.image || username}`,
+                // Cấu hình Stream.io
+                const apiKey = '3w47ynjjggn4';
+                const token = streamToken;
+                const userId = username;
+
+                const user = {
+                    id: userId,
+                    name: username,
+                    image: `https://getstream.io/random_svg/?id=oliver&name=${auth.image || username}`,
+                };
+
+                const videoClient = new StreamVideoClient({ apiKey, user, token });
+                setClient(videoClient);
+
+                const videoCall = videoClient.call('default', callId);
+                await videoCall.join({ create: true, localMedia: { video: stream, audio: stream } });
+                setCall(videoCall);
+            } catch (err) {
+                console.error("Error accessing local media devices:", err);
+                setMessage("Please grant camera and microphone permissions.");
+            }
         };
 
-        const videoClient = new StreamVideoClient({ apiKey, user, token });
-        setClient(videoClient);
-
-        const videoCall = videoClient.call('default', callId);
-
-        videoCall
-            .join({ create: true })
-            .then(() => {
-                setCall(videoCall);
-            })
-            .catch((error) => {
-                setError(error);
-            });
+        startLocalVideo();
 
         return () => {
-            videoClient.disconnectUser();
-            setClient(null);
-            if (videoCall) {
-                videoCall.leave();
-                setCall(null);
-            }
+            if (client) client.disconnectUser();
+            if (call) call.leave();
         };
     }, [streamToken, username, callId, auth.image]);
 
-    useEffect(() => {
-        // Kiểm tra quyền truy cập camera và microphone
-        navigator.permissions.query({ name: 'camera' }).then((result) => {
-            if (result.state === 'granted') {
-                // Nếu quyền truy cập đã được cấp
-                navigator.mediaDevices.getUserMedia({ video: true })
-                    .then((stream) => {
-                        // Kiểm tra videoRef.current có tồn tại trước khi truy cập
-                        if (videoRef.current) {
-                            videoRef.current.srcObject = stream;
-                        } else {
-                            console.error("Video element is not available.");
-                        }
-                    })
-                    .catch((err) => {
-                        console.error("Error accessing camera: ", err);
-                        setMessage("Error accessing camera.");
-                    });
-            } else if (result.state === 'prompt') {
-                // Nếu quyền truy cập chưa được cấp, yêu cầu quyền
-                navigator.mediaDevices.getUserMedia({ video: true })
-                    .then((stream) => {
-                        // Kiểm tra videoRef.current có tồn tại trước khi truy cập
-                        if (videoRef.current) {
-                            videoRef.current.srcObject = stream;
-                        } else {
-                            console.error("Video element is not available.");
-                        }
-                    })
-                    .catch((err) => {
-                        console.error("Error accessing camera: ", err);
-                        setMessage("Camera access is denied.");
-                    });
-            } else {
-                // Nếu quyền truy cập bị từ chối
-                setMessage("Camera access is denied.");
-            }
-        }).catch((err) => {
-            console.error("Permission error: ", err);
-            setMessage("Error checking camera permissions.");
-        });
-    }, []);
+    const captureFrameFromStream = () => {
+        if (!streamRef.current) {
+            setMessage("No video stream available.");
+            return;
+        }
+
+        const videoTrack = streamRef.current.getVideoTracks()[0];
+        const imageCapture = new ImageCapture(videoTrack);
+
+        imageCapture.takePhoto()
+            .then((blob) => {
+                console.log("Captured frame for face recognition.",blob);
+                console.log("Blob type:", blob.type); // Log the MIME type
+                console.log("Blob size:", blob.size); // Log the size of the blob
+
+                uploadFrameToAPI(blob);
+            })
+            .catch((err) => {
+                console.error("Error capturing frame:", err);
+            });
+    };
+
+    const uploadFrameToAPI = async (blob) => {
+        const file = new File([blob], 'frame.jpg', { type: 'image/jpeg' });
+        const formData = new FormData();
+        formData.append('image', file);
+        
+        try {
+            const response = await axios.post('/api/face/analyze', formData, {
+                headers: { 'Content-Type': 'multipart/form-data' },
+            });
+            console.log("Face recognition result:", response.data);
+        } catch (err) {
+            console.error("Face recognition error:", err);
+        }
+    };
     
-
-    // Capture frame for face recognition
-    const captureFrame = async () => {
-        if (!videoRef.current || !canvasRef.current) {
-            console.error("Video or canvas element is not available.");
-            return;
-        }
-
-        const videoElement = videoRef.current;
-        const canvasElement = canvasRef.current;
-        const ctx = canvasElement.getContext('2d');
-
-        // Kiểm tra videoElement và canvasElement
-        console.log('Video Element:', videoElement);
-        console.log('Canvas Element:', canvasElement);
-
-        if (videoElement.videoWidth === 0 || videoElement.videoHeight === 0) {
-            console.error("Video has no content.");
-            return;
-        }
-
-        // Set canvas size to video size
-        canvasElement.width = videoElement.videoWidth;
-        canvasElement.height = videoElement.videoHeight;
-
-        // Draw current frame on canvas
-        ctx.drawImage(videoElement, 0, 0, canvasElement.width, canvasElement.height);
-
-        // Convert canvas to Blob and send to backend
-        canvasElement.toBlob(async (blob) => {
-            if (blob) {
-                console.log("Image captured successfully");
-                const formData = new FormData();
-                formData.append('image', blob);
-
-                try {
-                    const response = await axios.post('/api/face/analyze', formData, {
-                        headers: {
-                            'Content-Type': 'multipart/form-data'
-                        }
-                    });
-
-                    if (response.data.recognized) {
-                        setMessage("Person A detected!");
-                        setFaceData(response.data);
-                    } else {
-                        setMessage("No match detected.");
-                        setFaceData([]);
-                    }
-                    console.log("Face recognition response:", response.data);
-                } catch (err) {
-                    console.error('Error in face recognition:', err);
-                    setMessage("Error occurred during face recognition.");
-                }
-            } else {
-                console.error("Failed to capture image, canvas blob is empty.");
-            }
-        }, 'image/jpeg');
-    };
-
-    const handleFaceRecognition = () => {
-        setMessage(""); // Reset message before new recognition
-        captureFrame();
-    };
-
-    useEffect(() => {
-        const interval = setInterval(captureFrame, 5000); // Every 5 seconds
-        return () => clearInterval(interval);
-    }, []);
-
-    if (error) {
-        return <div>Error: {error.message}</div>;
-    }
 
     if (!call || !client) {
         return (
@@ -190,22 +110,31 @@ export default function Call() {
         <>
             <StreamVideo client={client}>
                 <StreamCall call={call}>
-                    <MyUILayout callType={callType} faceData={faceData} />
+                    <MyUILayout callType={callType} />
                 </StreamCall>
             </StreamVideo>
-            {/* Hidden canvas for frame capture */}
-            <canvas ref={canvasRef} style={{ display: 'block' }} />
-            {/* Video element for capturing */}
-            <video ref={videoRef} autoPlay style={{ display: 'block' }} />
-            {/* Button for manual face recognition */}
-            <button onClick={handleFaceRecognition}>Recognize Face</button>
-            {/* Display messages */}
+            <button
+                onClick={captureFrameFromStream}
+                style={{
+                    position: 'fixed',
+                    bottom: '20px',
+                    right: '20px',
+                    padding: '10px 20px',
+                    backgroundColor: '#007BFF',
+                    color: '#fff',
+                    border: 'none',
+                    borderRadius: '5px',
+                    cursor: 'pointer',
+                }}
+            >
+                Detect Face
+            </button>
             {message && <div>{message}</div>}
         </>
     );
 }
 
-export const MyUILayout = ({ callType, faceData }) => {
+export const MyUILayout = ({ callType }) => {
     const { useCallCallingState, useCameraState, useMicrophoneState } = useCallStateHooks();
     const cameraState = useCameraState();
     const micState = useMicrophoneState();
@@ -228,35 +157,6 @@ export const MyUILayout = ({ callType, faceData }) => {
         <StreamTheme>
             <SpeakerLayout participantsBarPosition="bottom" />
             <CallControls />
-            <FaceOverlay faceData={faceData} />
         </StreamTheme>
-    );
-};
-
-const FaceOverlay = ({ faceData }) => {
-    if (!faceData || faceData.length === 0) {
-        console.log("No faces detected");
-        return null;
-    }
-
-    return (
-        <div className="face-overlay">
-            {faceData.map((face, index) => (
-                <div
-                    key={index}
-                    style={{
-                        position: 'absolute',
-                        top: face.y,
-                        left: face.x,
-                        width: face.width,
-                        height: face.height,
-                        border: '2px solid red',
-                    }}
-                >
-                    <p>Emotion: {face.emotion}</p>
-                    <p>Name: {face.name || 'Unknown'}</p>
-                </div>
-            ))}
-        </div>
     );
 };

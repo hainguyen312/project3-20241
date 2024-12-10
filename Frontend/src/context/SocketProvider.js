@@ -11,7 +11,7 @@ export const SocketProvider = ({ children }) => {
 
     useEffect(() => {
         if (auth?.username) {
-            const newSocket = io("http://localhost:8080", {
+            const newSocket = io("http://localhost:3000", {
             // const newSocket = io("https://ngcuong0812.id.vn", {
                 query: {
                     username: auth.username,
