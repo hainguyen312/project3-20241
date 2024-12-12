@@ -1,5 +1,7 @@
-tf-keras
+Flask
 tensorflow-cpu
 deepface
 numpy
 pillow
+scipy
+opencv-python
