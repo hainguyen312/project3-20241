@@ -1,0 +1,6 @@
+deepface
+firebase-admin
+pymongo
+numpy
+opencv-python-headless
+tensorflow
