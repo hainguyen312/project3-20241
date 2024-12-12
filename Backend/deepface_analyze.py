@@ -3,26 +3,13 @@ import json
 from deepface import DeepFace
 import numpy as np
 import os
-
-# Lấy đường dẫn đến ảnh và thư mục lưu embeddings
-image_path = sys.argv[1]
-embeddings_folder = sys.argv[2]
+import requests
+from PIL import Image
+from io import BytesIO
 
 # Hàm tính toán cosine similarity giữa 2 embeddings
 def cosine_similarity(embedding1, embedding2):
     return np.dot(embedding1, embedding2) / (np.linalg.norm(embedding1) * np.linalg.norm(embedding2))
-
-# Trích xuất embeddings từ thư mục
-def load_embeddings(embedding_folder):
-    embeddings = []
-    if not os.path.exists(embedding_folder):
-        raise FileNotFoundError(f"Embeddings folder {embedding_folder} not found.")
-    
-    for filename in os.listdir(embedding_folder):
-        if filename.endswith(".embedding"):
-            with open(os.path.join(embedding_folder, filename), "rb") as f:
-                embeddings.append(np.frombuffer(f.read(), dtype=np.float32))
-    return embeddings
 
 # Hàm chuyển đổi tất cả numpy.float32 sang float
 def convert_to_serializable(data):
@@ -30,48 +17,52 @@ def convert_to_serializable(data):
         return {key: convert_to_serializable(value) for key, value in data.items()}
     elif isinstance(data, list):
         return [convert_to_serializable(item) for item in data]
-    elif isinstance(data, np.float32):
+    elif isinstance(data, np.ndarray):  # Chuyển numpy array sang list
+        return data.tolist()
+    elif isinstance(data, (np.float32, np.float64)):  # Chuyển numpy float sang float Python
         return float(data)
+    elif isinstance(data, (np.int32, np.int64)):  # Chuyển numpy int sang int Python
+        return int(data)
+    elif isinstance(data, (np.bool_, bool)):  # Chuyển numpy bool sang bool Python
+        return bool(data)
     else:
         return data
 
-# Hàm chính để nhận diện khuôn mặt
-def recognize_face(image_path, embeddings_folder):
-    try:
-        if not os.path.exists(image_path):
-            return {"error": f"Image file {image_path} not found."}
-        
-        # Trích xuất embedding từ ảnh upload
-        analysis = DeepFace.represent(image_path, model_name="VGG-Face", enforce_detection=False)
-        detected_embedding = analysis[0]['embedding']
-        detected_embedding = [float(i) for i in detected_embedding]
+# Hàm tải ảnh từ URL hoặc đường dẫn file
+def load_image(image_path_or_url):
+    if image_path_or_url.startswith("http://") or image_path_or_url.startswith("https://"):
+        response = requests.get(image_path_or_url)
+        response.raise_for_status()
+        return Image.open(BytesIO(response.content))
+    return Image.open(image_path_or_url)
 
-        # Phân tích các đặc điểm khuôn mặt
-        face_analysis = DeepFace.analyze(image_path, actions=['age', 'gender', 'race', 'emotion'], enforce_detection=False)
+# Hàm chính để nhận diện khuôn mặt giữa 2 ảnh
+def recognize_face_between_images(video_image_path, avatar_image_path):
+    try:
+        # Tải ảnh từ đường dẫn hoặc URL
+        video_image = np.array(load_image(video_image_path))  # Chuyển đổi sang numpy array
+        avatar_image = np.array(load_image(avatar_image_path))  # Chuyển đổi sang numpy array
+
+        # Trích xuất embedding cho ảnh video call
+        video_analysis = DeepFace.represent(video_image, model_name="VGG-Face", enforce_detection=False)
+        video_embedding = np.array(video_analysis[0]['embedding'], dtype=np.float32)
+
+        # Trích xuất embedding cho ảnh đại diện (avatar)
+        avatar_analysis = DeepFace.represent(avatar_image, model_name="VGG-Face", enforce_detection=False)
+        avatar_embedding = np.array(avatar_analysis[0]['embedding'], dtype=np.float32)
+
+        # Tính toán độ tương đồng giữa 2 embeddings
+        similarity = cosine_similarity(video_embedding, avatar_embedding)
+
+        # Phân tích các đặc điểm khuôn mặt cho ảnh video call
+        face_analysis = DeepFace.analyze(video_image, actions=['age', 'gender', 'race', 'emotion'], enforce_detection=False)
 
         # Chuyển đổi các giá trị không serializable
         face_analysis = convert_to_serializable(face_analysis)
 
-        # Load embeddings mẫu
-        embeddings = load_embeddings(embeddings_folder)
-
-        # So sánh với embeddings của người A
-        for personA_embedding in embeddings:
-            similarity = cosine_similarity(detected_embedding, personA_embedding)
-            if similarity > 0.7:  # Ngưỡng tương đồng
-                return {
-                    "recognized": True,
-                    "similarity": similarity,
-                    "details": {
-                        "age": face_analysis[0]['age'],
-                        "gender": face_analysis[0]['gender'],
-                        "race": face_analysis[0]['dominant_race'],
-                        "emotion": face_analysis[0]['dominant_emotion']
-                    }
-                }
-        
+        # Kết quả trả về
         return {
-            "recognized": False,
+            "recognized": similarity > 0.7,  # Ngưỡng nhận diện là 0.7
             "similarity": similarity,
             "details": {
                 "age": face_analysis[0]['age'],
@@ -83,6 +74,11 @@ def recognize_face(image_path, embeddings_folder):
     except Exception as e:
         return {"error": str(e)}
 
+# Lấy tham số từ dòng lệnh (truyền 2 file ảnh)
+video_image_path = sys.argv[1]  # Ảnh từ video call
+avatar_image_path = sys.argv[2]  # Ảnh đại diện người dùng
+
 # Gọi hàm nhận diện và in kết quả
-result = recognize_face(image_path, embeddings_folder)
+result = recognize_face_between_images(video_image_path, avatar_image_path)
+result = convert_to_serializable(result)
 print(json.dumps(result))

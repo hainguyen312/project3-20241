@@ -4,7 +4,7 @@ import useAuth from "../../hooks/useAuth";
 
 const Profile = () => {
   const { auth } = useAuth();
-
+  console.log(auth.image)
   return (
     <div className="h-auto min-w-[350px] bg-[var(--page-bg)]">
       {/* Header */}

@@ -18,6 +18,7 @@ export default function Call() {
     const [client, setClient] = useState(null);
     const [call, setCall] = useState(null);
     const [message, setMessage] = useState("");
+    const [recognitionResult, setRecognitionResult] = useState(null); // Lưu kết quả nhận diện
     const { auth } = useAuth();
     const { username, streamToken } = auth;
     const { callType, callId } = useParams();
@@ -71,10 +72,7 @@ export default function Call() {
 
         imageCapture.takePhoto()
             .then((blob) => {
-                console.log("Captured frame for face recognition.",blob);
-                console.log("Blob type:", blob.type); // Log the MIME type
-                console.log("Blob size:", blob.size); // Log the size of the blob
-
+                console.log("Captured frame for face recognition.", blob);
                 uploadFrameToAPI(blob);
             })
             .catch((err) => {
@@ -85,18 +83,29 @@ export default function Call() {
     const uploadFrameToAPI = async (blob) => {
         const file = new File([blob], 'frame.jpg', { type: 'image/jpeg' });
         const formData = new FormData();
-        formData.append('image', file);
-        
+        formData.append('videoImage', file);
+        formData.append('avatarUrl', auth.image || '');
+
         try {
             const response = await axios.post('/api/face/analyze', formData, {
                 headers: { 'Content-Type': 'multipart/form-data' },
             });
             console.log("Face recognition result:", response.data);
+            setRecognitionResult(response.data); // Lưu kết quả vào state
         } catch (err) {
             console.error("Face recognition error:", err);
         }
     };
-    
+
+    // Tự động ẩn kết quả nhận diện sau 5 giây
+    useEffect(() => {
+        if (recognitionResult) {
+            const timer = setTimeout(() => {
+                setRecognitionResult(null);
+            }, 20000);
+            return () => clearTimeout(timer);
+        }
+    }, [recognitionResult]);
 
     if (!call || !client) {
         return (
@@ -111,6 +120,33 @@ export default function Call() {
             <StreamVideo client={client}>
                 <StreamCall call={call}>
                     <MyUILayout callType={callType} />
+                    {/* Hiển thị kết quả nhận diện nếu có */}
+                    {recognitionResult && (
+                        <div
+                            style={{
+                                position: 'absolute',
+                                top: '20px',
+                                right: '20px',
+                                backgroundColor: 'rgba(0, 0, 0, 0.7)',
+                                color: 'white',
+                                padding: '10px',
+                                borderRadius: '5px',
+                                zIndex: 1000,
+                            }}
+                        >
+                            <p><strong>Name:</strong> {recognitionResult.recognized ? auth.username : 'Can not recognized'}</p>
+                            <p><strong>Similarity:</strong> {recognitionResult.similarity.toFixed(2)}</p>
+                            <p><strong>Age:</strong> {recognitionResult.details.age}</p>
+                            <p><strong>Gender:</strong> {
+                                recognitionResult.details.gender.Woman > recognitionResult.details.gender.Man
+                                    ? 'Woman'
+                                    : 'Man'
+                            }</p>
+                            <p><strong>Race:</strong> {recognitionResult.details.race}</p>
+                            <p><strong>Emotion:</strong> {recognitionResult.details.emotion}</p>
+                        </div>
+                    )}
+
                 </StreamCall>
             </StreamVideo>
             <button
