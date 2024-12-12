@@ -1,7 +1,8 @@
-Flask
-tensorflow-cpu
-deepface
-numpy
-pillow
-scipy
-opencv-python
+deepface==0.0.93
+numpy==2.0.2
+pillow==11.0.0
+tensorflow==2.18.0
+keras==3.7.0
+opencv-python==4.10.0.84
+mtcnn==1.0.0
+requests==2.32.3
