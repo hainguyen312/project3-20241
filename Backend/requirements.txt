@@ -1,4 +1,4 @@
-tf-keras
+tensorflow-cpu
 deepface
 numpy
 pillow
