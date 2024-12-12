@@ -6,3 +6,5 @@ keras==3.7.0
 opencv-python==4.10.0.84
 mtcnn==1.0.0
 requests==2.32.3
+tf_keras==2.18.0
+retina-face==0.0.17
