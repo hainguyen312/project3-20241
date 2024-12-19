@@ -1,8 +1,9 @@
 import { createContext, useState, useEffect } from "react";
-import useAuth from '../hooks/useAuth';
+import useAuth from "../hooks/useAuth";
 import io from "socket.io-client";
 
 const SocketContext = createContext({});
+let socketInstance = null; // Biến toàn cục để lưu socket instance
 
 export const SocketProvider = ({ children }) => {
     const [socket, setSocket] = useState(null);
@@ -11,24 +12,44 @@ export const SocketProvider = ({ children }) => {
 
     useEffect(() => {
         if (auth?.username) {
-            const newSocket = io("https://project3-20241.onrender.com", {
-            // const newSocket = io("https://ngcuong0812.id.vn", {
-                query: {
-                    username: auth.username,
-                },
-            });
-            console.log(newSocket);
-            setSocket(newSocket);
-        } else {
-            console.error(`Not authenticated`);
+            if (socketInstance) {
+                console.log("Reusing existing socket:", socketInstance.id);
+                setSocket(socketInstance);
+            } else {
+                // Tạo socket mới nếu chưa tồn tại
+                const newSocket = io("https://project3-20241.onrender.com", {
+                    query: { username: auth.username },
+                });
+                socketInstance = newSocket; // Gán socket mới cho biến toàn cục
+                setSocket(newSocket);
+
+                newSocket.on("connect", () => {
+                    console.log("Socket connected:", newSocket.id);
+                    localStorage.setItem("SocketID", newSocket.id);
+                });
+
+                newSocket.on("disconnect", () => {
+                    console.log("Socket disconnected:", newSocket.id);
+                    localStorage.removeItem("SocketID");
+                });
+            }
+
+            return () => {
+                if (socketInstance) {
+                    socketInstance.disconnect();
+                    socketInstance = null; // Đảm bảo biến toàn cục bị xóa khi socket disconnect
+                }
+            };
         }
     }, [auth]);
 
     return (
-        <SocketContext.Provider value={{ socket, setSocket, inComingCall, setInComingCall }}>
+        <SocketContext.Provider
+            value={{ socket, setSocket, inComingCall, setInComingCall }}
+        >
             {children}
         </SocketContext.Provider>
-    )
-}
+    );
+};
 
 export default SocketContext;

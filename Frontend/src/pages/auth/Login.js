@@ -39,7 +39,8 @@ function Login() {
                 const email = response?.data?.email;
                 const streamToken = response?.data?.streamToken;
                 const image = response?.data?.image;
-                setAuth({ username, fullname, email, accessToken, streamToken, image });
+                const id =response?.data?.userId;
+                setAuth({ username, fullname, email, accessToken, streamToken, image, id });
                 navigate('/', { replace: true });
             } catch (error) {
                 console.log(error);
@@ -65,14 +66,15 @@ function Login() {
 
         try {
             const response = await axios.post('/api/auth', { identifier, password });
-            // console.log(response.data);
+            console.log(response.data);
             const username = response?.data?.username;
             const accessToken = response?.data?.accessToken;
             const fullname = response?.data?.fullname;
             const email = response?.data?.email;
             const streamToken = response?.data?.streamToken;
             const image = response?.data?.image;
-            setAuth({ username, fullname, email, accessToken, streamToken, image });
+            const id =response.data.userId;
+            setAuth({ username, fullname, email, accessToken, streamToken, image ,id });
             setIdentifier('');
             setPassword('');
             setHasError(false);

@@ -11,26 +11,32 @@ import {
 import { useEffect, useState, useRef } from 'react';
 import useAuth from '../../hooks/useAuth';
 import Loading from '../Loading';
-import { useParams } from 'react-router-dom';
+import { useParams, useLocation } from 'react-router-dom';
 import axios from 'axios';
+import useSocket from '../../hooks/useSocket';
 
 export default function Call() {
     const [client, setClient] = useState(null);
     const [call, setCall] = useState(null);
     const [message, setMessage] = useState("");
-    const [recognitionResult, setRecognitionResult] = useState(null); // Lưu kết quả nhận diện
+    const [recognitionResult, setRecognitionResult] = useState([]);
+    const [isLoading, setIsLoading] = useState(false);
     const { auth } = useAuth();
     const { username, streamToken } = auth;
     const { callType, callId } = useParams();
-    const streamRef = useRef(null); // Sử dụng useRef để lưu trữ stream
-
+    const streamRef = useRef(null);
+    const location = useLocation();
+    const [isConfirming, setIsConfirming] = useState(false);    
+    const queryParams = new URLSearchParams(location.search);
+    const groupOwner = queryParams.get('groupOwner');
+    const { socket } = useSocket();
+    // Khởi tạo video call
     useEffect(() => {
         const startLocalVideo = async () => {
             try {
                 const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
-                streamRef.current = stream; // Lưu stream vào useRef
+                streamRef.current = stream;
 
-                // Cấu hình Stream.io
                 const apiKey = '3w47ynjjggn4';
                 const token = streamToken;
                 const userId = username;
@@ -38,7 +44,7 @@ export default function Call() {
                 const user = {
                     id: userId,
                     name: username,
-                    image: `https://getstream.io/random_svg/?id=oliver&name=${auth.image || username}`,
+                    image: auth.image || `https://getstream.io/random_svg/?id=${username}&name=${username}`,
                 };
 
                 const videoClient = new StreamVideoClient({ apiKey, user, token });
@@ -61,6 +67,7 @@ export default function Call() {
         };
     }, [streamToken, username, callId, auth.image]);
 
+    // Chụp khung hình từ luồng video
     const captureFrameFromStream = () => {
         if (!streamRef.current) {
             setMessage("No video stream available.");
@@ -80,32 +87,98 @@ export default function Call() {
             });
     };
 
+    // Gửi khung hình tới API phân tích khuôn mặt
     const uploadFrameToAPI = async (blob) => {
+        setIsLoading(true);
         const file = new File([blob], 'frame.jpg', { type: 'image/jpeg' });
         const formData = new FormData();
         formData.append('videoImage', file);
         formData.append('avatarUrl', auth.image || '');
-
+    
         try {
             const response = await axios.post('/api/face/analyze', formData, {
                 headers: { 'Content-Type': 'multipart/form-data' },
             });
-            console.log("Face recognition result:", response.data);
-            setRecognitionResult(response.data); // Lưu kết quả vào state
+    
+            console.log("Face recognition result from API:", response.data); // Log dữ liệu từ API
+    
+            const resultData = {
+                userId: auth.username,
+                ...response.data
+            };
+    
+            setRecognitionResult((prevResults) => [
+                ...prevResults,
+                resultData
+            ]);
+    
+            socket.emit('face_detect_result', {
+                owner: groupOwner,
+                result: resultData
+            });
+    
+            console.log("Sent result to socket server:", {
+                owner: groupOwner,
+                result: resultData
+            }); // Log dữ liệu gửi qua socket
+    
         } catch (err) {
             console.error("Face recognition error:", err);
+            setMessage("An error occurred while recognizing the face.");
+        } finally {
+            setIsLoading(false);
         }
     };
+    
 
-    // Tự động ẩn kết quả nhận diện sau 5 giây
+    // Gửi yêu cầu phát hiện khuôn mặt tới các thành viên trong cuộc gọi
+    const requestFaceDetection = () => {
+        if (!call) return;
+    
+        const participantIds = call.state?.participants
+            .map((member) => member.userId)
+            .filter((userId) => userId !== groupOwner); // Loại bỏ owner khỏi danh sách
+    
+        console.log(participantIds);
+    
+        socket.emit('detect_face', { 
+            memberIds: participantIds, 
+            owner: auth.username 
+        });
+    
+        setMessage("Request sent to participants for face detection.");
+    };
+    
+
+    // Xử lý các sự kiện từ socket
     useEffect(() => {
-        if (recognitionResult) {
-            const timer = setTimeout(() => {
-                setRecognitionResult(null);
-            }, 20000);
-            return () => clearTimeout(timer);
-        }
-    }, [recognitionResult]);
+        if (!socket) return;
+
+        // Khi nhận được yêu cầu phát hiện khuôn mặt từ owner
+        const handleRequestFaceDetect = (data) => {
+            const { owner } = data;
+            console.log("Received request_face_detect:", data);
+            setIsConfirming(true);
+        };
+
+        const handleReceiveFaceResult = (data) => {
+            const { result } = data;
+            console.log(`Received face detect result:`, result);
+
+            setRecognitionResult((prevResults) => [
+                ...prevResults,
+                result,
+            ]);
+        };
+
+        socket.on('request_face_detect', handleRequestFaceDetect);
+        socket.on('receive_face_result', handleReceiveFaceResult);
+
+        return () => {
+            socket.off('request_face_detect', handleRequestFaceDetect);
+            socket.off('receive_face_result', handleReceiveFaceResult);
+        };
+    }, [socket]);
 
     if (!call || !client) {
         return (
@@ -114,44 +187,132 @@ export default function Call() {
             </div>
         );
     }
+    const handleAcceptRequest = () => {
+        setIsConfirming(false);
+        captureFrameFromStream(); // Trigger face detection
+    };
 
+    const handleRejectRequest = () => {
+        setIsConfirming(false);
+        console.log("Face detection request rejected.");
+    };
+console.log(call.state.participants)
+console.log(socket.id)
     return (
         <>
             <StreamVideo client={client}>
                 <StreamCall call={call}>
                     <MyUILayout callType={callType} />
-                    {/* Hiển thị kết quả nhận diện nếu có */}
-                    {recognitionResult && (
+                    {auth.username === groupOwner && 
+                    recognitionResult.map((result, index) => (
+                        <div key={index} className="face-result"  style={{
+                            position: 'absolute',
+                            top: `${20 + index * 100}px`,
+                            right: '20px',
+                            backgroundColor: 'rgba(0, 0, 0, 0.7)',
+                            color: 'white',
+                            padding: '10px',
+                            borderRadius: '5px',
+                            zIndex: 1000,
+                        }}>
+                            <p><strong>User:</strong> {result.recognized? result.userId:'Không rõ'}</p>
+                            <p><strong>Similarity:</strong> {result.similarity.toFixed(2)}</p>
+                            <p><strong>Age:</strong> {result.details.age}</p>
+                            <p><strong>Gender:</strong> {result.details.gender.Woman > result.details.gender.Man ? 'Nữ' : 'Man'}</p>
+                            <p><strong>Race:</strong> {result.details.race}</p>
+                            <p><strong>Emotion:</strong> {result.details.emotion}</p>
+                        </div>
+                    ))}
+
+                    {isLoading && (
                         <div
                             style={{
                                 position: 'absolute',
-                                top: '20px',
-                                right: '20px',
+                                top: '50%',
+                                left: '50%',
+                                transform: 'translate(-50%, -50%)',
                                 backgroundColor: 'rgba(0, 0, 0, 0.7)',
                                 color: 'white',
-                                padding: '10px',
+                                padding: '20px',
                                 borderRadius: '5px',
                                 zIndex: 1000,
                             }}
                         >
-                            <p><strong>Name:</strong> {recognitionResult.recognized ? auth.username : 'Can not recognized'}</p>
-                            <p><strong>Similarity:</strong> {recognitionResult.similarity.toFixed(2)}</p>
-                            <p><strong>Age:</strong> {recognitionResult.details.age}</p>
-                            <p><strong>Gender:</strong> {
-                                recognitionResult.details.gender.Woman > recognitionResult.details.gender.Man
-                                    ? 'Woman'
-                                    : 'Man'
-                            }</p>
-                            <p><strong>Race:</strong> {recognitionResult.details.race}</p>
-                            <p><strong>Emotion:</strong> {recognitionResult.details.emotion}</p>
+                            <p>Recognizing face...</p>
+                        </div>
+                    )}
+                    {isConfirming && (
+                        <div style={{
+                            position: 'fixed',
+                            top: '30%',
+                            left: '50%',
+                            transform: 'translateX(-50%)',
+                            backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                            color: '#fff',
+                            padding: '30px',
+                            borderRadius: '10px',
+                            textAlign: 'center',
+                            zIndex: 1000,
+                            width: '300px',
+                            boxShadow: '0 4px 10px rgba(0, 0, 0, 0.4)',
+                        }}>
+                            <h2 style={{
+                                marginBottom: '20px',
+                                fontSize: '1.5em',
+                                fontWeight: 'bold',
+                            }}>
+                                Face Detection Request
+                            </h2>
+                            <p style={{
+                                marginBottom: '20px',
+                                fontSize: '1em',
+                            }}>
+                                {groupOwner} is requesting to detect your face. Do you agree?
+                            </p>
+                            <button 
+                                onClick={handleAcceptRequest} 
+                                style={{
+                                    padding: '10px 20px',
+                                    margin: '10px',
+                                    backgroundColor: '#007bff',
+                                    color: '#fff',
+                                    border: 'none',
+                                    borderRadius: '5px',
+                                    cursor: 'pointer',
+                                    fontSize: '1em',
+                                    transition: 'background-color 0.3s',
+                                }}
+                                onMouseOver={(e) => e.target.style.backgroundColor = '#0056b3'}
+                                onMouseOut={(e) => e.target.style.backgroundColor = '#007bff'}
+                            >
+                                Accept
+                            </button>
+                            <button 
+                                onClick={handleRejectRequest} 
+                                style={{
+                                    padding: '10px 20px',
+                                    margin: '10px',
+                                    backgroundColor: '#dc3545',
+                                    color: '#fff',
+                                    border: 'none',
+                                    borderRadius: '5px',
+                                    cursor: 'pointer',
+                                    fontSize: '1em',
+                                    transition: 'background-color 0.3s',
+                                }}
+                                onMouseOver={(e) => e.target.style.backgroundColor = '#c82333'}
+                                onMouseOut={(e) => e.target.style.backgroundColor = '#dc3545'}
+                            >
+                                Reject
+                            </button>
                         </div>
                     )}
 
                 </StreamCall>
             </StreamVideo>
-            <button
-                onClick={captureFrameFromStream}
-                style={{
+
+            {auth.username === groupOwner &&
+                <button onClick={requestFaceDetection} style={{
                     position: 'fixed',
                     bottom: '20px',
                     right: '20px',
@@ -161,11 +322,13 @@ export default function Call() {
                     border: 'none',
                     borderRadius: '5px',
                     cursor: 'pointer',
-                }}
-            >
-                Detect Face
-            </button>
+                }}>
+                    Detect Face
+                </button>
+            }
+
             {message && <div>{message}</div>}
+
         </>
     );
 }
@@ -185,7 +348,6 @@ export const MyUILayout = ({ callType }) => {
     }
 
     if (!cameraState.hasBrowserPermission || !micState.hasBrowserPermission) {
-        console.warn('Camera or microphone permissions are not granted.');
         return <div>Please grant camera and microphone permissions to continue.</div>;
     }
 

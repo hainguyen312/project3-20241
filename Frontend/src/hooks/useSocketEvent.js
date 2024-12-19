@@ -5,6 +5,7 @@ const useListenEvent = () => {
     const { socket, setInComingCall } = useSocket();
 
     useEffect(() => {
+        
         socket?.on("someone_calling", (data) => {
             // console.log(data);
             setInComingCall(data);

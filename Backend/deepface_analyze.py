@@ -64,7 +64,7 @@ def recognize_face_between_images(video_image_path, avatar_image_path):
 
         # Kết quả trả về
         return {
-            "recognized": similarity > 0.7,  # Ngưỡng nhận diện là 0.7
+            "recognized": similarity > 0.6,  # Ngưỡng nhận diện là 0.7
             "similarity": similarity,
             "details": {
                 "age": face_analysis[0]['age'],

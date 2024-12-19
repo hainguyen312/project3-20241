@@ -34,22 +34,60 @@ io.on("connection", (socket) => {
             const calledMembers = {};
 
             memberIds.forEach(memberId => {
-                if (userSocketMap[memberId] && userSocketMap[memberId].length > 0) {
-                    const memberSocketId = userSocketMap[memberId][0];
-                    if (memberSocketId !== socket.id && !calledMembers[memberSocketId]) {
-                        io.to(memberSocketId).emit("someone_calling", {
-                            caller: username,
-                            callType: data.callType,
-                            isGroup: data.isGroup,
-                            name: data.name,
-                            image: data.image,
-                            callId: data.callId
-                        });
-                        console.log(`Ringing call to ${memberSocketId}`);
-                        calledMembers[memberSocketId] = true;
-                    }
+                const memberSockets = userSocketMap[memberId];
+                if (memberSockets && memberSockets.length > 0) {
+                    memberSockets.forEach(memberSocketId => {
+                        if (memberSocketId !== socket.id && !calledMembers[memberSocketId]) {
+                            io.to(memberSocketId).emit("someone_calling", {
+                                caller: username,
+                                callType: data.callType,
+                                isGroup: data.isGroup,
+                                name: data.name,
+                                image: data.image,
+                                callId: data.callId,
+                                groupOwner: data.groupOwner
+                            });
+                            console.log(`Ringing call to ${memberSocketId}`);
+                            calledMembers[memberSocketId] = true;
+                        }
+                    });
                 }
             });
+        });
+
+        socket.on("detect_face", (data) => {
+            const { memberIds, owner } = data;
+            console.log(`Detect face initiated by ${owner}`);
+        
+            memberIds.forEach(memberId => {
+                const memberSockets = userSocketMap[memberId];
+                if (memberSockets && memberSockets.length > 0) {
+                    memberSockets.forEach(memberSocketId => {
+                        console.log(`Requesting face detect to ${memberSocketId}`);
+                        io.to(memberSocketId).emit("request_face_detect", { owner });
+                    });
+                }
+            });
+        });
+
+        socket.on("face_detect_result", (data) => {
+            const { owner, result } = data;
+        
+            // Log dữ liệu nhận từ client
+            console.log(`Received face_detect_result from client:`, data); 
+        
+            const ownerSockets = userSocketMap[owner];
+            if (ownerSockets && ownerSockets.length > 0) {
+                ownerSockets.forEach(ownerSocketId => {
+                    // Log socketId của owner và dữ liệu được gửi
+                    console.log(`Sending face detect result to owner (${owner}) at socket ID: ${ownerSocketId}`);
+                    console.log(`Data sent to owner:`, result); 
+        
+                    io.to(ownerSocketId).emit("receive_face_result", { result });
+                });
+            } else {
+                console.log(`No socket found for owner: ${owner}`);
+            }
         });
 
         socket.on("disconnect", () => {

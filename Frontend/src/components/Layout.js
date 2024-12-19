@@ -14,7 +14,7 @@ const RingingCall = ({ inComingCall }) => {
   const { setInComingCall } = useSocket();
 
   const acceptCall = () => {
-    window.open(`/call/${inComingCall.callType}/${inComingCall.callId}`, '_blank', 'width=1280,height=720');
+    window.open(`/call/${inComingCall.callType}/${inComingCall.callId}/?groupOwner=${inComingCall.groupOwner}`, '_blank', 'width=1280,height=720');
     setInComingCall(null);
   };
 
@@ -53,8 +53,10 @@ const RingingCall = ({ inComingCall }) => {
 const Layout = () => {
   useSocketEvent();
   const { inComingCall } = useSocket();
+  console.log(inComingCall)
 
   const { auth } = useAuth();
+  console.log(auth)
   const { username, streamToken, image } = auth;
 
   const apiKey = '3w47ynjjggn4';
@@ -85,7 +87,7 @@ const Layout = () => {
               <ChatPanel />
             </div>
             <Outlet />
-            <MessageContainer />
+            <MessageContainer userId={auth.id} />
           </Chat>
         </div>
       </div>

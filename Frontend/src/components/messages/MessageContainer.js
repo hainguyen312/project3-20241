@@ -159,13 +159,16 @@ const ChannelHeader = ({ channelData, members, memberIds, handleStartCall }) => 
   );
 };
 
-const MessageContainer = () => {
+const MessageContainer = ({userId}) => {
   const { channel } = useChatContext();
   const { auth } = useAuth();
   const { socket } = useSocket();
   const members = channel?.state?.members;
   const memberIds = Object.keys(members || []);
   const axiosPrivate = useAxiosPrivate();
+  const groupOwner = channel?.data?.created_by?.id; // ID của owner
+
+  console.log(memberIds)
 
   const handleStartCall = async (callType) => {
     const callId = await axiosPrivate.get(`/api/call?cid=${channel?.data?.cid}`);
@@ -176,9 +179,10 @@ const MessageContainer = () => {
         isGroup: channel?.data?.isGroup,
         name: channel?.data?.name,
         memberIds: JSON.stringify(memberIds),
-        callId: callId?.data?.cid
+        callId: callId?.data?.cid,
+        groupOwner:groupOwner
       });
-      window.open(`/call/${callType}/${callId?.data?.cid}`, '_blank', 'width=1280,height=720');
+      window.open(`/call/${callType}/${callId?.data?.cid}?groupOwner=${groupOwner}`, '_blank', 'width=1280,height=720');
     }
     else {
       alert('Error');
