@@ -146,7 +146,7 @@ export default function Call() {
             owner: auth.username 
         });
     
-        setMessage("Request sent to participants for face detection.");
+        setMessage("Request sent to participants for face detection");
     };
     
 
