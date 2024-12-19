@@ -12,7 +12,7 @@ import { useEffect, useState, useRef } from 'react';
 import useAuth from '../../hooks/useAuth';
 import Loading from '../Loading';
 import { useParams, useLocation } from 'react-router-dom';
-import axios from '../../axios';
+import axios from 'axios';
 import useSocket from '../../hooks/useSocket';
 
 export default function Call() {
@@ -96,7 +96,7 @@ export default function Call() {
         formData.append('avatarUrl', auth.image || '');
     
         try {
-            const response = await axios.post('/api/face/analyze', formData, {
+            const response = await axios.post('https://a7e8-171-241-60-192.ngrok-free.app/api/face/analyze', formData, {
                 headers: { 'Content-Type': 'multipart/form-data' },
             });
     
