@@ -10,12 +10,12 @@ require('dotenv').config();
 const { app, server } = require('./socket');
 
 app.use(cors({
-    origin: ['http://localhost:3000', 'https://project3-20241.onrender.com','https://project3-20241-1.onrender.com'],
+    origin: ['http://localhost:3000', 'https://project3-20241.onrender.com','https://project3-20241-1.onrender.com','https://a7e8-171-241-60-192.ngrok-free.app'],
     credentials: true
 }));
 
 app.options('*', cors({
-    origin: ['http://localhost:3000', 'https://project3-20241.onrender.com', 'https://project3-20241-1.onrender.com'],
+    origin: ['http://localhost:3000', 'https://project3-20241.onrender.com', 'https://project3-20241-1.onrender.com','https://a7e8-171-241-60-192.ngrok-free.app'],
     credentials: true
 }));
 
