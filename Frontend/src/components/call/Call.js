@@ -12,7 +12,7 @@ import { useEffect, useState, useRef } from 'react';
 import useAuth from '../../hooks/useAuth';
 import Loading from '../Loading';
 import { useParams, useLocation } from 'react-router-dom';
-import axios from 'axios';
+import axios from '../../../axios';
 import useSocket from '../../hooks/useSocket';
 
 export default function Call() {
