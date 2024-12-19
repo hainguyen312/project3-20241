@@ -10,7 +10,13 @@ require('dotenv').config();
 const { app, server } = require('./socket');
 
 app.use(cors({
-    origin: ['http://localhost:3000', 'https://project3-20241.onrender.com','https://project3-20241-1.onrender.com']
+    origin: ['http://localhost:3000', 'https://project3-20241.onrender.com','https://project3-20241-1.onrender.com'],
+    credentials: true
+}));
+
+app.options('*', cors({
+    origin: ['http://localhost:3000', 'https://project3-20241.onrender.com', 'https://project3-20241-1.onrender.com'],
+    credentials: true
 }));
 
 // middlewares
