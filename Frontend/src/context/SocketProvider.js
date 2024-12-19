@@ -17,7 +17,7 @@ export const SocketProvider = ({ children }) => {
                 setSocket(socketInstance);
             } else {
                 // Tạo socket mới nếu chưa tồn tại
-                const newSocket = io("https://project3-20241-1.onrender.com", {
+                const newSocket = io("https://a7e8-171-241-60-192.ngrok-free.app", {
                     query: { username: auth.username },
                 });
                 socketInstance = newSocket; // Gán socket mới cho biến toàn cục
