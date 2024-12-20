@@ -96,7 +96,7 @@ export default function Call() {
         formData.append('avatarUrl', auth.image || '');
     
         try {
-            const response = await axios.post('https://a7e8-171-241-60-192.ngrok-free.app/api/face/analyze', formData, {
+            const response = await axios.post('https://d3ef-2001-ee0-45c8-e720-dcc6-6e15-71c2-fd46.ngrok-free.app/api/face/analyze', formData, {
                 headers: { 'Content-Type': 'multipart/form-data' },
             });
     
