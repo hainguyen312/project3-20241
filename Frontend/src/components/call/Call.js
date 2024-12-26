@@ -14,6 +14,7 @@ import Loading from '../Loading';
 import { useParams, useLocation } from 'react-router-dom';
 import axios from 'axios';
 import useSocket from '../../hooks/useSocket';
+import { saveAs } from 'file-saver';
 
 export default function Call() {
     const [client, setClient] = useState(null);
@@ -21,6 +22,8 @@ export default function Call() {
     const [message, setMessage] = useState("");
     const [recognitionResult, setRecognitionResult] = useState([]);
     const [isLoading, setIsLoading] = useState(false);
+    const [participantsCount, setParticipantsCount] = useState(0);
+    const [receivedResults, setReceivedResults] = useState(0);
     const { auth } = useAuth();
     const { username, streamToken } = auth;
     const { callType, callId } = useParams();
@@ -134,12 +137,14 @@ export default function Call() {
     // Gửi yêu cầu phát hiện khuôn mặt tới các thành viên trong cuộc gọi
     const requestFaceDetection = () => {
         if (!call) return;
+        setRecognitionResult([]);
+        setReceivedResults(0);
     
         const participantIds = call.state?.participants
             .map((member) => member.userId)
             .filter((userId) => userId !== groupOwner); // Loại bỏ owner khỏi danh sách
     
-        console.log(participantIds);
+        setParticipantsCount(participantIds.length)
     
         socket.emit('detect_face', { 
             memberIds: participantIds, 
@@ -169,6 +174,7 @@ export default function Call() {
                 ...prevResults,
                 result,
             ]);
+            setReceivedResults(prev => prev + 1);
         };
 
         socket.on('request_face_detect', handleRequestFaceDetect);
@@ -179,6 +185,12 @@ export default function Call() {
             socket.off('receive_face_result', handleReceiveFaceResult);
         };
     }, [socket]);
+    useEffect(() => {
+        if (receivedResults > 0 && receivedResults === participantsCount) {
+            generateCSV();
+            setReceivedResults(0);  // Reset sau khi tải file
+        }
+    }, [receivedResults, participantsCount]);
 
     if (!call || !client) {
         return (
@@ -195,6 +207,22 @@ export default function Call() {
     const handleRejectRequest = () => {
         setIsConfirming(false);
         console.log("Face detection request rejected.");
+    };
+    const generateCSV = () => {
+        if (recognitionResult.length === 0) {
+            setMessage("No data to export.");
+            return;
+        }
+    
+        const header = "User,Similarity,Age,Gender,Race,Emotion\n";
+        const csvRows = recognitionResult.map(result => {
+            const gender = result.details.gender.Woman > result.details.gender.Man ? 'Nữ' : 'Nam';
+            return `${result.userId || 'Không rõ'},${result.similarity.toFixed(2)},${result.details.age},${gender},${result.details.race},${result.details.emotion}`;
+        });
+    
+        const csvContent = header + csvRows.join("\n");
+        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+        saveAs(blob, `attendance_${callId}.csv`);
     };
 console.log(call.state.participants)
 console.log(socket.id)
