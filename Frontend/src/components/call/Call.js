@@ -217,12 +217,17 @@ export default function Call() {
         const header = "User,Similarity,Age,Gender,Race,Emotion\n";
         const csvRows = recognitionResult.map(result => {
             const gender = result.details.gender.Woman > result.details.gender.Man ? 'Nữ' : 'Nam';
-            return `${result.userId || 'Không rõ'},${result.similarity.toFixed(2)},${result.details.age},${gender},${result.details.race},${result.details.emotion}`;
+            return `${result.recognized? result.userId:'Không rõ'},${result.similarity.toFixed(2)},${result.details.age},${gender},${result.details.race},${result.details.emotion}`;
         });
     
         const csvContent = header + csvRows.join("\n");
         const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-        saveAs(blob, `attendance_${callId}.csv`);
+        const now = new Date();
+        const dateStr = now.toISOString().split('T')[0]; // YYYY-MM-DD format
+        const timeStr = now.toTimeString().split(' ')[0].replace(/:/g, '-'); // HH-MM-SS format
+        const fileName = `attendance_${callId}_${dateStr}_${timeStr}.csv`;
+    
+        saveAs(blob, fileName);
     };
 console.log(call.state.participants)
 console.log(socket.id)
@@ -231,7 +236,7 @@ console.log(socket.id)
             <StreamVideo client={client}>
                 <StreamCall call={call}>
                     <MyUILayout callType={callType} />
-                    {auth.username === groupOwner && 
+                    {/* {auth.username === groupOwner && 
                     recognitionResult.map((result, index) => (
                         <div key={index} className="face-result"  style={{
                             position: 'absolute',
@@ -250,7 +255,7 @@ console.log(socket.id)
                             <p><strong>Race:</strong> {result.details.race}</p>
                             <p><strong>Emotion:</strong> {result.details.emotion}</p>
                         </div>
-                    ))}
+                    ))} */}
 
                     {isLoading && (
                         <div
