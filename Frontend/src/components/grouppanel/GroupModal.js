@@ -220,7 +220,11 @@ function GroupModal({ toggleModal, status, editGroup, onCreateGroup, onEditGroup
                         <div className="text-center">
                             <p className="mb-2">Tên nhóm: {groupName}</p>
                             <p className="mb-2">Số thành viên: {list.length}</p>
-                            <p>Bạn có chắc chắn muốn tạo nhóm?</p>
+                            <p>
+                            {status === "edit"
+                                ? "Bạn có chắc chắn muốn lưu thay đổi nhóm?"
+                                : "Bạn có chắc chắn muốn tạo nhóm?"}
+                            </p>
                         </div>
                     </div>
                 );
@@ -251,6 +255,7 @@ function GroupModal({ toggleModal, status, editGroup, onCreateGroup, onEditGroup
                     {/* Left side - Carousel */}
                     <div className="p-4">
                         <Carousel 
+                            status={status}
                             baseWidth={350}
                             autoplay={false}
                             currentIndex={currentStep}

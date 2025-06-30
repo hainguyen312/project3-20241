@@ -37,8 +37,41 @@ const VELOCITY_THRESHOLD = 500;
 const GAP = 16;
 const SPRING_OPTIONS = { type: "spring", stiffness: 300, damping: 30 };
 
+const getItemsByStatus = (status) => {
+  if (status === "edit") {
+    return [
+      {
+        title: "Bước 1: Sửa thông tin nhóm",
+        description: "Chỉnh sửa tên nhóm hoặc ảnh đại diện",
+        id: 1,
+        icon: <FiFolderPlus className="carousel-icon" />,
+      },
+      {
+        title: "Bước 2: Quản lý thành viên",
+        description: "Thêm/xóa thành viên trong nhóm",
+        id: 2,
+        icon: <FiUsers className="carousel-icon" />,
+      },
+      {
+        title: "Bước 3: Lưu thay đổi",
+        description: "Kiểm tra lại thông tin trước khi lưu",
+        id: 3,
+        icon:  <FiUserCheck className="carousel-icon" />,
+      },
+      {
+        title: "Bước 4: Hoàn thành",
+        description: "Nhấn nút Xác nhận để hoàn tất",
+        id: 4,
+        icon: <FiCheckCircle className="carousel-icon" />,
+      },
+    ];
+  }
+  // Mặc định là create
+  return DEFAULT_ITEMS;
+};
+
 export default function Carousel({
-  items = DEFAULT_ITEMS,
+  status = "create",
   baseWidth = 300,
   autoplay = false,
   autoplayDelay = 3000,
@@ -48,6 +81,7 @@ export default function Carousel({
   currentIndex = 0,
   onIndexChange = () => {},
 }) {
+  const items = getItemsByStatus(status);
   const containerPadding = 16;
   const itemWidth = baseWidth - containerPadding * 2;
   const trackItemOffset = itemWidth + GAP;
