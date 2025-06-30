@@ -35,9 +35,13 @@ export default function Call() {
     const queryParams = new URLSearchParams(location.search);
     const groupOwner = queryParams.get('groupOwner');
     const groupName = queryParams.get('groupName');
+    const isGroupParam = queryParams.get('isGroup');
+    const isGroup = isGroupParam === 'true';
     const { socket } = useSocket();
     const [chatClient, setChatClient] = useState(null);
     const axiosPrivate = useAxiosPrivate();
+
+    console.log(!isGroupParam,isGroupParam)
     // Khởi tạo video call
     useEffect(() => {
         if (message) {
@@ -376,7 +380,7 @@ export default function Call() {
                 </StreamCall>
             </StreamVideo>
 
-            {auth.username === groupOwner && (
+            {auth.username === groupOwner && isGroup &&(
                 <button 
                     onClick={requestFaceDetection}
                     className="fixed bottom-6 right-6 px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg shadow-lg transition-all duration-200 transform hover:scale-105 flex items-center space-x-2"

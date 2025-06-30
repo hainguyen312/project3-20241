@@ -333,7 +333,7 @@ const MessageContainer = ({userId}) => {
         callId: callId?.data?.cid,
         groupOwner:groupOwner
       });
-      window.open(`/call/${callType}/${callId?.data?.cid}?groupOwner=${groupOwner}&groupName=${channel?.data?.name}`, '_blank', 'width=1280,height=720');
+      window.open(`/call/${callType}/${callId?.data?.cid}?groupOwner=${groupOwner}&groupName=${channel?.data?.name}&isGroup=${channel?.data?.isGroup?channel?.data?.isGroup:false}`, '_blank', 'width=1280,height=720');
     }
     else {
       alert('Error');
