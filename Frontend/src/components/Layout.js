@@ -14,7 +14,7 @@ const RingingCall = ({ inComingCall }) => {
   const { setInComingCall } = useSocket();
 
   const acceptCall = () => {
-    window.open(`/call/${inComingCall.callType}/${inComingCall.callId}/?groupOwner=${inComingCall.groupOwner}`, '_blank', 'width=1280,height=720');
+    window.open(`/call/${inComingCall.callType}/${inComingCall.callId}?groupOwner=${inComingCall.groupOwner}&groupName=${inComingCall.name}&isGroup=${inComingCall.isGroup}`, '_blank', 'width=1280,height=720');
     setInComingCall(null);
   };
 
