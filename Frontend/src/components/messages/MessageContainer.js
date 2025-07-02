@@ -1,5 +1,5 @@
 import {
-  Channel, MessageInput, MessageList, Thread, Window, useChatContext,useChannelStateContext
+  Channel, MessageInput, MessageList, Thread, Window, useChatContext, useTypingContext
 } from 'stream-chat-react';
 import {IoIosRecording ,IoIosVideocam, IoIosCall, IoIosMenu } from 'react-icons/io';
 import Tippy from "@tippyjs/react";
@@ -254,9 +254,46 @@ const ChannelHeader = ({ channelData, members, memberIds, handleStartCall }) => 
   );
 };
 
+// Component hiển thị trạng thái typing có avatar
+function CustomTypingIndicator() {
+  const { typing = {} } = useTypingContext();
+  const { client } = useChatContext();
+  const typingUsers = Object.values(typing).filter(
+    ({ user }) => user?.id !== client.user?.id
+  );
+  const [dotCount, setDotCount] = useState(1);
+
+  useEffect(() => {
+    if (typingUsers.length === 0) return;
+    const interval = setInterval(() => {
+      setDotCount((prev) => (prev % 3) + 1);
+    }, 400);
+    return () => clearInterval(interval);
+  }, [typingUsers.length]);
+
+  if (typingUsers.length === 0) return null;
+
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', margin: '8px 0 8px 12px' }}>
+      {typingUsers.map(({ user }) => (
+        <div key={user.id} style={{ display: 'flex', alignItems: 'center', marginRight: 8 }}>
+          <img
+            src={user.image || `https://getstream.io/random_svg/?id=${user.id}&name=${user.name || user.id}`}
+            alt={user.name || user.id}
+            style={{ width: 24, height: 24, borderRadius: '50%', marginRight: 4 }}
+          />
+          <span style={{ color: '#007bff', fontStyle: 'italic', fontSize: 14 }}>
+            {user.name || user.id} typing
+            <span style={{ fontSize: 22, letterSpacing: 1, verticalAlign: 'middle', marginLeft:'5px' }}>{'.'.repeat(dotCount)}</span>
+          </span>
+        </div>
+      ))}
+    </div>
+  );
+}
+
 const MessageContainer = ({userId}) => {
   const { channel } = useChatContext();
-  const { messages } = useChannelStateContext();
   const { auth } = useAuth();
   const { socket } = useSocket();
   const members = channel?.state?.members;
@@ -351,6 +388,7 @@ const MessageContainer = ({userId}) => {
     <Channel 
       EmojiPicker={EmojiPicker} 
       emojiSearchIndex={SearchIndex}
+      TypingIndicator={CustomTypingIndicator}
     >
       <Window>
         <ChannelHeader channelData={channel?.data} members={members} memberIds={memberIds} handleStartCall={handleStartCall} />
