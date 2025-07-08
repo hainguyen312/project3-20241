@@ -76,7 +76,8 @@ function Login() {
             const image = response?.data?.image;
             const id =response.data.userId;
             const isFirstLogin = response?.data?.isFirstLogin;
-            setAuth({ username, fullname, email, accessToken, streamToken, image, id, isFirstLogin });
+            const faceImage = response?.data?.faceImage;
+            setAuth({ username, fullname, email, accessToken, streamToken, image, faceImage, id, isFirstLogin });
             setIdentifier('');
             setPassword('');
             setHasError(false);

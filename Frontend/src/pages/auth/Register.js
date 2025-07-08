@@ -46,6 +46,7 @@ function Register() {
 
     const [tmpAuth, setTmpAuth] = useState(null);
     const [success, setSuccess] = useState(false);
+    const [faceImageUser, setFaceImageUser] = useState(null);
 
     useEffect(() => {
         setValidName(USERNAME_REGEX.test(username));
@@ -69,7 +70,7 @@ function Register() {
 
     const handleSubmit = async (e) => {
         e.preventDefault();
-        console.log(username, email, password, cfPassword);
+        console.log(username, email, password, cfPassword,faceImageUser);
 
         // use regex to check validation
         if (!validName) {
@@ -95,17 +96,31 @@ function Register() {
 
         // if all validation passed
         try {
-            const response = await axios.post('/api/register', { username, password, email });
+            const formData = new FormData();
+            formData.append('username', username);
+            formData.append('email', email);
+            formData.append('password', password);
+            console.log('hi1');
+            console.log('faceImage tại thời điểm append:', faceImageUser);
+            console.log('append bằng Blob');
+            if (faceImageUser) {
+                const blob = new Blob([faceImageUser], { type: faceImageUser.type });
+                formData.append('faceImage', blob, faceImageUser.name);
+            }
+            console.log('hi2')
+            const response = await axios.post('/api/register', formData);
+            console.log(response);
             const accessToken = response?.data?.accessToken;
             const streamToken = response?.data?.streamToken;
             const isFirstLogin = response?.data?.isFirstLogin;
             const image = response?.data?.image;
+            const faceImage = response?.data?.faceImage;
             setUsername('');
             setEmail('');
             setPassword('');
             setCfPassword('');
             setHasError(false);
-            setTmpAuth({ username: username, email, accessToken, streamToken, image, isFirstLogin })
+            setTmpAuth({ username: username, email, accessToken, streamToken, image, faceImage, isFirstLogin })
             setSuccess(true);
         } catch (error) {
             setHasError(true);
@@ -220,8 +235,19 @@ function Register() {
                                     </Tippy>
                                 </div>
 
+                                <div className="mt-[14rem] ml-5 mr-5 relative">
+                                    <label htmlFor="faceImage" className="absolute px-1 font-semibold bg-[var(--login-form-container)] left-3 z-20 text-blue-600 text-xs"> Portrait Image </label>
+                                    <input
+                                        type="file"
+                                        id="faceImage"
+                                        accept="image/*"
+                                        className="absolute top-2 z-10 rounded-sm py-1.5 pl-3 w-full bg-[var(--login-form-container)] text-[var(--login-input-text-color)] border-2 border-gray-300 duration-300 hover:border-cyan-600 focus:border-blue-700"
+                                        onChange={(e) => setFaceImageUser(e.target.files[0])}
+                                    />
+                                </div>
+
                                 {/* Submit */}
-                                <div className="mt-[15rem] flex justify-end mr-5">
+                                <div className="mt-[18rem] flex justify-end mr-5">
 
                                     <span className={`flex-1 max-w-[200px] pl-0 pr-1 ${hasError ? 'text-red-600' : 'text-green-600'}`}>{message}</span>
 

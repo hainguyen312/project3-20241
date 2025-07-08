@@ -41,7 +41,7 @@ export default function Call() {
     const [chatClient, setChatClient] = useState(null);
     const axiosPrivate = useAxiosPrivate();
 
-    console.log(!isGroupParam,isGroupParam)
+    console.log(auth.faceImage)
     // Khởi tạo video call
     useEffect(() => {
         if (message) {
@@ -122,7 +122,7 @@ export default function Call() {
         const file = new File([blob], 'frame.jpg', { type: 'image/jpeg' });
         const formData = new FormData();
         formData.append('videoImage', file);
-        formData.append('avatarUrl', auth.image || '');
+        formData.append('avatarUrl', auth.faceImage || '');
         console.log(formData)
     
         try {

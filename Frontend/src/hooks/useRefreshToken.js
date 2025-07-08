@@ -16,7 +16,8 @@ const useRefreshToken = () => {
             email: response.data.email,
             accessToken: response.data.accessToken,  
             streamToken: response.data.streamToken,
-            isFirstLogin: response.data.isFirstLogin
+            isFirstLogin: response.data.isFirstLogin,
+            faceImage: response.data.faceImage
         });
         return response.data.accessToken;
     }

@@ -76,6 +76,7 @@ const handleLogin = async (req, res) => {
                     email: existingUser.email,
                     username: existingUser.username,
                     image: existingUser.image || `https://getstream.io/random_png/?name=${existingUser.username}`,
+                    faceImage: existingUser.faceImage,
                     isFirstLogin: existingUser.isFirstLogin,
                     streamToken: streamToken
                 });
@@ -256,6 +257,7 @@ const handleGoogleLogin = async (req, res) => {
             email: user.email,
             username: user.username,
             image: user.image || `https://getstream.io/random_png/?name=${user.username}`,
+            faceImage: user.faceImage,
             streamToken: streamToken
         });
     } catch (error) {
